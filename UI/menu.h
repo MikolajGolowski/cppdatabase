@@ -12,7 +12,7 @@ class Menu{
 public:
     int podOpcjaMenu;
     bool parse(string &input, Kernel &kernel);
-    bool C(Kernel &kernel);
+    void C(Kernel &kernel);
     bool R(Kernel &kernel);
     bool U(Kernel &kernel);
     bool D(Kernel &kernel);

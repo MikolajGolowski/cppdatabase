@@ -28,7 +28,7 @@ void Menu::init() {
 }
 
 
-bool Menu::C(Kernel &kernel) {
+void Menu::C(Kernel &kernel) {
     string buf1, buf2, nazwa;
     cout<<"Podaj nazwe obiektu: ";
     cin>>nazwa;
