@@ -15,6 +15,9 @@ bool Menu::parse(string &input, Kernel &kernel) {
     }else if(input == "C" || input == "c"){
         if(czyBazaOk(kernel))
             C(kernel);
+    }else if(input == "r" || input == "R"){
+        if(czyBazaOk(kernel))
+            R(kernel);
     }else{
         cout<<"Wybrano baze danych "<<input<<endl;
         kernel.switchDatabase(input);
@@ -36,34 +39,48 @@ void Menu::C(Kernel &kernel) {
     string buf1, buf2, nazwa;
     cout<<"Podaj nazwe obiektu: ";
     cin>>nazwa;
-    cout<<"Dodawanie atrybutow do obiektu:\n";
-    vector<pair<string,string>> atr;
-    do{
-        cout<<"Podaj nazwe atrybutu(lub zakoncz wpisujac stop): ";
+    while(true){
+        cout<<"Stworzyc obiekt czy liczbe(o/l)?";
         cin>>buf1;
-        if(buf1=="stop")
+        if(buf1=="o"){
+            cout<<"Dodawanie atrybutow do obiektu:\n";
+            vector<pair<string,string>> atr;
+            do{
+                cout<<"Podaj nazwe atrybutu(lub zakoncz wpisujac stop): ";
+                cin>>buf1;
+                if(buf1=="stop")
+                    break;
+                cout<<"Wpisz wartosc "<<buf1<<": ";
+                cin>>buf2;
+                atr.push_back({buf1,buf2});
+            } while (true);
+            Obiekt ob(atr,nazwa,kernel.currentFilename);
+            kernel.Create(&ob);
             break;
-        cout<<"Wpisz wartosc "<<buf1<<": ";
-        cin>>buf2;
-        atr.push_back({buf1,buf2});
-    } while (true);
-#if DEBUG
-    cout<<"Tworzenie obiektu "<<nazwa<<" "<<kernel.currentFilename<<endl;
-#endif
-    Obiekt ob(atr, nazwa, kernel.currentFilename);
-    kernel.Create(ob);
+        }else if(buf1 == "l"){
+            cout<<"Wpisz liczbe: ";
+            cin>>buf1;
+            Liczba licz(stoi(buf1), nazwa, kernel.currentFilename);
+            kernel.Create(&licz);
+            break;
+        }
+    }
+
 }
 
-bool Menu::R(Kernel &kernel) {
-    return false;
+void Menu::R(Kernel &kernel) {
+    cout<<"Wpisz id elementu (-1 wypisze caly plik): ";
+    string a;
+    cin>>a;
+    kernel.Read(stoi(a));
 }
 
-bool Menu::U(Kernel &kernel) {
-    return false;
+void Menu::U(Kernel &kernel) {
+
 }
 
-bool Menu::D(Kernel &kernel) {
-    return false;
+void Menu::D(Kernel &kernel) {
+
 }
 
 bool Menu::czyBazaOk(Kernel& kernel) {

@@ -12,9 +12,9 @@ public:
     int podOpcjaMenu;
     bool parse(string &input, Kernel &kernel);
     void C(Kernel &kernel);
-    bool R(Kernel &kernel);
-    bool U(Kernel &kernel);
-    bool D(Kernel &kernel);
+    void R(Kernel &kernel);
+    void U(Kernel &kernel);
+    void D(Kernel &kernel);
     void init();
     bool czyBazaOk(Kernel& kernel);
 };

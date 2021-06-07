@@ -7,18 +7,11 @@
 #include "kernel.h"
 
 
-bool Kernel::SerializeAll() {
-    return false;
-}
-
 Kernel::~Kernel() {
 
     cout<<"Koniec programu\n";
 }
 
-bool Kernel::openFile() {
-    return false;
-}
 
 string readFileToString(string filename){
     ifstream t(filename);
@@ -47,14 +40,19 @@ string encryptOrDecrypt(string msg, string key)
     return msg;
 }
 
-void Kernel::Create(Obiekt &ob) {
+void Kernel::Create(ISerializable* ob) {
 #if DEBUG
     cout<<"Przed wpisem w allobj jest "<<allObjects.size()<<" elementow"<<endl;
 #endif
-    ob.id = databaseUniqueIdAvbl[ob.filename];
-    databaseUniqueIdAvbl[ob.filename]++;
-    obj.emplace_back(ob);
-    allObjects.emplace_back(&obj.back());
+    ob->id = databaseUniqueIdAvbl[ob->filename];
+    databaseUniqueIdAvbl[ob->filename]++;
+    if(ob->type == OBIEKT){
+        obj.push_back(*(Obiekt *)ob);
+        allObjects.emplace_back(&obj.back());
+    }else if(ob->type == LICZBA){
+        lic.push_back(*(Liczba *)ob);
+        allObjects.emplace_back((&lic.back()));
+    }
     makeWholeFile();
 }
 
@@ -67,6 +65,8 @@ void Kernel::readWholeFile() {
     bool wKlamrowych = false;
     int ile = 0;
     int pocz = -1, typ;
+    Obiekt c;
+    Liczba l;
     for (size_t i = 0; i < content.size(); ++i) {
         if(wKlamrowych){
             if(pocz == -1) {
@@ -78,13 +78,20 @@ void Kernel::readWholeFile() {
                 wKlamrowych = false;
                 switch(typ){
                     case OBIEKT:
-                        Obiekt c;
                         c.filename = currentFilename;
                         c.type = OBIEKT;
                         allObjects.push_back(c.deSerialize(content.substr(pocz, i-pocz), *this));
                         if(c.id >= databaseUniqueIdAvbl[currentFilename])
                             databaseUniqueIdAvbl[currentFilename] = c.id+1;
                         break;
+                    case LICZBA:
+                        l.filename = currentFilename;
+                        l.type = LICZBA;
+                        allObjects.push_back(l.deSerialize(content.substr(pocz, i-pocz), *this));
+                        if(c.id >= databaseUniqueIdAvbl[currentFilename])
+                            databaseUniqueIdAvbl[currentFilename] = c.id+1;
+                        break;
+
                 }
                 pocz = -1;
             }
@@ -131,120 +138,25 @@ void Kernel::clear() {
     allObjects.clear();
     obj.clear();
     databaseUniqueIdAvbl.clear();
-    currentFilename ="";
+    currentFilename = "";
 }
 
-string Obiekt::serialize() {
-    string s = "";
-#if DEBUG
-    cout<<"Proba serializacji"<<endl;
-#endif
-    s.append("{1" + name + "," + to_string(id) + "," + to_string(parentId) + "," + to_string(childrenId.size()) + ","
-     + to_string(atrybuty.size()));
-    for(auto i : childrenId){
-        s.append(","+to_string(i));
-    }
-    for(auto &i : atrybuty){
-        s.append("," + i.first + "," + i.second);
-    }
-    s.append("}");
-#if DEBUG
-    cout<<"Zserializowano "<<s<<endl;
-#endif
-    return s;
-}
-
-ISerializable* Obiekt::deSerialize(string content, Kernel &kernel) {
-    bool wPrzec = false;
-    string _id, _pid, ileD, ileA;
-    _id ="";
-    _pid="";
-    ileD = "";
-    ileA="";
-    int valC = 0, ileDzieci, ileAtr, x = 0, y = 0;
-    for (int i = 0; i < content.size(); ++i) {
-        if(content[i] == ','){
-            //if(wPrzec){
-                valC++;
-             //   wPrzec = false;
-            //}else{
-             //   wPrzec = true;
-            //}
-        }else{
-            //if(wPrzec){
-                switch (valC) {
-                    case 0:
-                        name += content[i];
-                        break;
-                    case 1:
-                        _id += content[i];
-                        break;
-                    case 2:
-                        _pid += content[i];
-                        break;
-                    case 3:
-                        ileD += content[i];
-                        break;
-                    case 4:
-                        ileA += content[i];
-                        break;
-                    case 5:
-                        valC = i;
-                        i = content.size();
-                        break;
-                }
-            //}
+void Kernel::Read(int a) {
+    for(auto i : allObjects){
+        if(a==-1 || i->id == a){
+            cout<<endl<<i->id<<". "<<i->name<<" typ: "<<i->type - '0'<<endl<<"ParentID: "<<i->parentId<<endl<<"Children IDs: ";
+            for(auto j : i->childrenId)
+                cout<<j<<" ";
+            cout<<endl;
+            switch(i->type){
+                case OBIEKT:
+                    for(auto z : ((Obiekt*)i)->atrybuty)
+                        cout<<z.first<<": "<<z.second<<endl;
+                    break;
+                case LICZBA:
+                    cout<<"Wartosc: "<<((Liczba*)i)->liczba<<endl;
+                    break;
+            }
         }
     }
-#if DEBUG
-    cout<<"sparsowano z "<<content<<"\nname="<<name<<" id="<<_id<<" parentId="<<_pid<<" ileD="<<ileD<<" ileA="<<ileA<<endl;
-#endif
-    id = stoi(_id);
-    parentId = stoi(_pid);
-    ileDzieci = stoi(ileD);
-    ileAtr = stoi(ileA);
-    string buf, buf2;
-    for (int i = 0; i < ileDzieci; ++i) {
-        while(content[valC] != ','){
-            buf += content[valC];
-            valC++;
-        }
-        valC++;
-        childrenId.push_back(stoi(buf));
-    }
-    for (int i = 0; i < ileAtr; ++i) {
-        while(content[valC] != ','){
-            buf += content[valC];
-            valC++;
-        }
-        valC++;
-        while(valC < content.size() && content[valC] != ','){
-            buf2 += content[valC];
-            valC++;
-        }
-        valC++;
-        atrybuty.insert({buf,buf2});
-#if DEBUG
-        cout<<" wstawiam na mape pare "<<buf<<" "<<buf2<<endl;
-#endif
-    }
-    bool wpis = true;
-    _List_iterator<Obiekt> i;
-    for(i = kernel.obj.begin(); i!=kernel.obj.end(); i++ ){
-        if((*i).id == id){
-            //kernel.allObjects.erase(remove(kernel.allObjects.begin(), kernel.allObjects.end(), &*i), kernel.allObjects.end());
-            //kernel.obj.erase(i);
-            wpis = false;
-#if DEBUG
-            cout<<"Baza danych uszkodzona - sa w niej duplikaty"<<endl;
-#endif
-            break;
-        }
-    }
-    if(wpis){
-        kernel.obj.push_back(*this);
-        //kernel.allObjects.push_back(&kernel.obj.back());
-        return &kernel.obj.back();
-    }
-    throw;
 }
