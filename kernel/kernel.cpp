@@ -3,6 +3,7 @@
 //
 #include <sstream>
 #include <utility>
+#include <algorithm>
 #include "kernel.h"
 
 
@@ -20,7 +21,7 @@ bool Kernel::openFile() {
 }
 
 string readFileToString(string filename){
-    ifstream t("file.txt");
+    ifstream t(filename);
     stringstream buffer;
     buffer << t.rdbuf();
     t.close();
@@ -47,6 +48,9 @@ string encryptOrDecrypt(string msg, string key)
 }
 
 void Kernel::Create(Obiekt &ob) {
+#if DEBUG
+    cout<<"Przed wpisem w allobj jest "<<allObjects.size()<<" elementow"<<endl;
+#endif
     ob.id = databaseUniqueIdAvbl[ob.filename];
     databaseUniqueIdAvbl[ob.filename]++;
     obj.emplace_back(ob);
@@ -55,6 +59,9 @@ void Kernel::Create(Obiekt &ob) {
 }
 
 void Kernel::readWholeFile() {
+#if DEBUG
+    cout<<"Przed czytaniem w allobj jest "<<allObjects.size()<<" elementow"<<endl;
+#endif
     vector<ISerializable*> a;
     string content = encryptOrDecrypt(readFileToString(currentFilename),KEY);
     bool wKlamrowych = false;
@@ -71,11 +78,10 @@ void Kernel::readWholeFile() {
                 wKlamrowych = false;
                 switch(typ){
                     case OBIEKT:
-                        Obiekt c(content.substr(pocz, i-1-pocz), *this);
+                        Obiekt c;
                         c.filename = currentFilename;
                         c.type = OBIEKT;
-                        (*this).obj.push_back(c);
-                        (*this).allObjects.push_back((ISerializable *) &(*this).obj.back());
+                        allObjects.push_back(c.deSerialize(content.substr(pocz, i-pocz), *this));
                         if(c.id >= databaseUniqueIdAvbl[currentFilename])
                             databaseUniqueIdAvbl[currentFilename] = c.id+1;
                         break;
@@ -87,9 +93,15 @@ void Kernel::readWholeFile() {
         }
     }
     cout<<"Wczytano "<<ile<<" struktur danych\n";
+#if DEBUG
+    cout<<"Po wczytaniu w allobj jest "<<allObjects.size()<<" elementow"<<endl;
+#endif
 }
 
 void Kernel::switchDatabase(string &databasename) {
+#if DEBUG
+    cout<<"Zmieniam baze danych"<<endl;
+#endif
     clear();
     currentFilename = databasename;
     databaseUniqueIdAvbl.erase(databasename);
@@ -105,15 +117,11 @@ void Kernel::makeWholeFile() {
 #endif
     data.reserve(allObjects.size() * 100);
     for (auto & i : allObjects) {
-        //if((allObjects[i])->filename == currentFilename){
 #if DEBUG
+        cout<<"Dodano zserializowany obiekt do bazy danych"<<endl;
         cout<<"obiekt name = "<<(*((Obiekt*)i)).name<<endl;
 #endif
-            data.append((*((Obiekt*)i)).serialize());
-#if DEBUG
-            cout<<"Dodano zserializowany obiekt do bazy danych"<<endl;
-#endif
-       // }
+        data.append((*((Obiekt*)i)).serialize());
     }
     file << encryptOrDecrypt(data,KEY);
     file.close();
@@ -136,7 +144,7 @@ string Obiekt::serialize() {
     for(auto i : childrenId){
         s.append(","+to_string(i));
     }
-    for(auto i : atrybuty){
+    for(auto &i : atrybuty){
         s.append("," + i.first + "," + i.second);
     }
     s.append("}");
@@ -156,14 +164,14 @@ ISerializable* Obiekt::deSerialize(string content, Kernel &kernel) {
     int valC = 0, ileDzieci, ileAtr, x = 0, y = 0;
     for (int i = 0; i < content.size(); ++i) {
         if(content[i] == ','){
-            if(wPrzec){
+            //if(wPrzec){
                 valC++;
-                wPrzec = false;
-            }else{
-                wPrzec = true;
-            }
+             //   wPrzec = false;
+            //}else{
+             //   wPrzec = true;
+            //}
         }else{
-            if(wPrzec){
+            //if(wPrzec){
                 switch (valC) {
                     case 0:
                         name += content[i];
@@ -185,9 +193,12 @@ ISerializable* Obiekt::deSerialize(string content, Kernel &kernel) {
                         i = content.size();
                         break;
                 }
-            }
+            //}
         }
     }
+#if DEBUG
+    cout<<"sparsowano z "<<content<<"\nname="<<name<<" id="<<_id<<" parentId="<<_pid<<" ileD="<<ileD<<" ileA="<<ileA<<endl;
+#endif
     id = stoi(_id);
     parentId = stoi(_pid);
     ileDzieci = stoi(ileD);
@@ -206,20 +217,34 @@ ISerializable* Obiekt::deSerialize(string content, Kernel &kernel) {
             buf += content[valC];
             valC++;
         }
-        while(content[valC] != ','){
+        valC++;
+        while(valC < content.size() && content[valC] != ','){
             buf2 += content[valC];
             valC++;
         }
         valC++;
         atrybuty.insert({buf,buf2});
+#if DEBUG
+        cout<<" wstawiam na mape pare "<<buf<<" "<<buf2<<endl;
+#endif
     }
-    for(auto i = kernel.obj.begin(); i!=kernel.obj.end(); i++ ){
+    bool wpis = true;
+    _List_iterator<Obiekt> i;
+    for(i = kernel.obj.begin(); i!=kernel.obj.end(); i++ ){
         if((*i).id == id){
-            kernel.obj.erase(i);
+            //kernel.allObjects.erase(remove(kernel.allObjects.begin(), kernel.allObjects.end(), &*i), kernel.allObjects.end());
+            //kernel.obj.erase(i);
+            wpis = false;
+#if DEBUG
+            cout<<"Baza danych uszkodzona - sa w niej duplikaty"<<endl;
+#endif
             break;
         }
     }
-    kernel.obj.push_back(*this);
-    kernel.allObjects.push_back(&kernel.obj.back());
-    return &kernel.obj.back();
+    if(wpis){
+        kernel.obj.push_back(*this);
+        //kernel.allObjects.push_back(&kernel.obj.back());
+        return &kernel.obj.back();
+    }
+    throw;
 }

@@ -43,9 +43,7 @@ public:
     string serialize() override;
     ISerializable* deSerialize(string content, Kernel& kernel) override;
 
-    Obiekt(string content, const Kernel& ke){
-        deSerialize(content, const_cast<Kernel &>(ke));
-    }
+    Obiekt(){}
 
     Obiekt(vector<pair<string,string>> &atr, const string &nazwa, const string &_filename){         //konstruktor
         for (auto & i : atr) {                                                                      //zakresowa petla for
@@ -66,7 +64,9 @@ public:
 class Kernel{
 public:
     ~Kernel();              //destruktor
-
+    Kernel(){
+        currentFilename = "";
+    }
 private:
     void clear();
     string currentFilename;

@@ -13,7 +13,8 @@ bool Menu::parse(string &input, Kernel &kernel) {
     }else if(input=="exit"){
         return false;
     }else if(input == "C" || input == "c"){
-        C(kernel);
+        if(czyBazaOk(kernel))
+            C(kernel);
     }else{
         cout<<"Wybrano baze danych "<<input<<endl;
         kernel.switchDatabase(input);
@@ -27,6 +28,9 @@ void Menu::init() {
     cout<<"Program bazy danych CRUD z obsluga wielu baz i szyfrowaniem"<<endl<<"Aby uzyskac pomoc wpisz help"<<endl<<">>> ";
 }
 
+void bazaDanychNieWybrana(){
+
+}
 
 void Menu::C(Kernel &kernel) {
     string buf1, buf2, nazwa;
@@ -60,4 +64,12 @@ bool Menu::U(Kernel &kernel) {
 
 bool Menu::D(Kernel &kernel) {
     return false;
+}
+
+bool Menu::czyBazaOk(Kernel& kernel) {
+    if(kernel.currentFilename.empty()){
+        cout<<"Nie wybrano bazy danych!\n";
+        return false;
+    }
+    return true;
 }

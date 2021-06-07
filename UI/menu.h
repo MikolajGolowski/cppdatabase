@@ -6,7 +6,6 @@
 #define CPP_MENU_H
 #include <iostream>
 #include "../kernel/kernel.h"
-enum error{otwieranie_pliku};
 
 class Menu{
 public:
@@ -17,5 +16,6 @@ public:
     bool U(Kernel &kernel);
     bool D(Kernel &kernel);
     void init();
+    bool czyBazaOk(Kernel& kernel);
 };
 #endif //CPP_MENU_H
