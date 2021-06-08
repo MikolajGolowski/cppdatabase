@@ -40,10 +40,13 @@ string encryptOrDecrypt(string msg, string key)
     return msg;
 }
 
-void Kernel::Create(ISerializable* ob) {
+void Kernel::Create(ISerializable* ob, vector<int> chldIds, int parentID) {
 #if DEBUG
     cout<<"Przed wpisem w allobj jest "<<allObjects.size()<<" elementow"<<endl;
 #endif
+    auto parent = getById(parentID);
+    ob->parentId = parent->id;
+    ob->childrenId = chldIds;
     ob->id = databaseUniqueIdAvbl[ob->filename];
     databaseUniqueIdAvbl[ob->filename]++;
     if(ob->type == OBIEKT){
@@ -53,6 +56,7 @@ void Kernel::Create(ISerializable* ob) {
         lic.push_back(*(Liczba *)ob);
         allObjects.emplace_back((&lic.back()));
     }
+    parent->childrenId.emplace_back(ob->id);
     makeWholeFile();
 }
 
@@ -60,14 +64,25 @@ void Kernel::readWholeFile() {
 #if DEBUG
     cout<<"Przed czytaniem w allobj jest "<<allObjects.size()<<" elementow"<<endl;
 #endif
-    vector<ISerializable*> a;
     string content = encryptOrDecrypt(readFileToString(currentFilename),KEY);
+    if(content.empty()){
+        content = "1{2root,0,0,0,0}";
+    }
+    size_t j = 0;
+    while(content[j] != '{' && j < content.size()){
+        j++;
+    }
+#if DEBUG
+    cout<<"Database id max="<<content.substr(0,j)<<endl;
+#endif
+    if(j > 0)
+        databaseUniqueIdAvbl[currentFilename] = stoi(content.substr(0,j));
     bool wKlamrowych = false;
     int ile = 0;
     int pocz = -1, typ;
     Obiekt c;
     Liczba l;
-    for (size_t i = 0; i < content.size(); ++i) {
+    for (size_t i = j; i < content.size(); ++i) {
         if(wKlamrowych){
             if(pocz == -1) {
                 pocz = i+1;
@@ -88,12 +103,12 @@ void Kernel::readWholeFile() {
                         l.filename = currentFilename;
                         l.type = LICZBA;
                         allObjects.push_back(l.deSerialize(content.substr(pocz, i-pocz), *this));
-                        if(c.id >= databaseUniqueIdAvbl[currentFilename])
-                            databaseUniqueIdAvbl[currentFilename] = c.id+1;
+                        if(l.id >= databaseUniqueIdAvbl[currentFilename])
+                            databaseUniqueIdAvbl[currentFilename] = l.id+1;
                         break;
-
                 }
                 pocz = -1;
+
             }
         }else if(content[i] == '{'){
             wKlamrowych = true;
@@ -119,6 +134,7 @@ void Kernel::switchDatabase(string &databasename) {
 void Kernel::makeWholeFile() {
     ofstream file(currentFilename);
     string data = "";
+    data.append(to_string(databaseUniqueIdAvbl[currentFilename]));
 #if DEBUG
     cout<<"W allobjects jest "<<allObjects.size()<<" elementow"<<endl;
 #endif
@@ -126,9 +142,9 @@ void Kernel::makeWholeFile() {
     for (auto & i : allObjects) {
 #if DEBUG
         cout<<"Dodano zserializowany obiekt do bazy danych"<<endl;
-        cout<<"obiekt name = "<<(*((Obiekt*)i)).name<<endl;
+        cout<<"obiekt name = "<< (*i).name<<endl;
 #endif
-        data.append((*((Obiekt*)i)).serialize());
+        data.append((*i).serialize());
     }
     file << encryptOrDecrypt(data,KEY);
     file.close();
@@ -137,6 +153,7 @@ void Kernel::makeWholeFile() {
 void Kernel::clear() {
     allObjects.clear();
     obj.clear();
+    lic.clear();
     databaseUniqueIdAvbl.clear();
     currentFilename = "";
 }
@@ -159,4 +176,52 @@ void Kernel::Read(int a) {
             }
         }
     }
+}
+
+bool Kernel::czyJestDuplikat(int id) {
+    for(auto i : allObjects){
+        if(i->id == id){
+            cout<<"Baza danych uszkodzona - sa w niej duplikaty"<<endl;
+            return true;
+        }
+    }
+    return false;
+}
+
+void Kernel::removeById(int id) {
+    for(auto i = allObjects.begin(); i!=allObjects.end() ; i++){
+        if((*i)->id == id){
+            for(auto j : (*i)->childrenId){
+                removeById(j);
+            }
+            auto elem = getById((*i)->parentId);
+            for(auto j = elem->childrenId.begin(); j != elem->childrenId.end(); j++){
+                if(*j == (*i)->id){
+                    elem->childrenId.erase(j);
+                    break;
+                }
+            }
+            allObjects.erase(i);
+            break;
+        }
+    }
+    makeWholeFile();
+}
+
+ISerializable *Kernel::getById(int id) {
+    for(auto i = allObjects.begin(); i!=allObjects.end() ; i++){
+        if((*i)->id == id){
+            return *i;
+        }
+    }
+    return nullptr;
+}
+
+bool Kernel::checkIfElementExists(int id) {
+    for(auto i : allObjects){
+        if((*i).id == id){
+            return true;
+        }
+    }
+    return false;
 }

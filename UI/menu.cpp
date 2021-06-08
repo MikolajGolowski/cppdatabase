@@ -18,9 +18,18 @@ bool Menu::parse(string &input, Kernel &kernel) {
     }else if(input == "r" || input == "R"){
         if(czyBazaOk(kernel))
             R(kernel);
-    }else{
+    }else if(input == "u" || input == "U"){
+        if(czyBazaOk(kernel))
+            U(kernel);
+    }else if(input == "d" || input == "D"){
+        if(czyBazaOk(kernel))
+            D(kernel);
+    }else if(input == "baza"){
+        cin>>input;
         cout<<"Wybrano baze danych "<<input<<endl;
         kernel.switchDatabase(input);
+    }else{
+        cout<<"Nierozpoznana komenda"<<endl;
     }
 
     cout<<endl<<">>> ";
@@ -31,14 +40,24 @@ void Menu::init() {
     cout<<"Program bazy danych CRUD z obsluga wielu baz i szyfrowaniem"<<endl<<"Aby uzyskac pomoc wpisz help"<<endl<<">>> ";
 }
 
-void bazaDanychNieWybrana(){
-
-}
-
 void Menu::C(Kernel &kernel) {
     string buf1, buf2, nazwa;
     cout<<"Podaj nazwe obiektu: ";
     cin>>nazwa;
+    vector<int> childrenId;
+    int parentId;
+    do{
+        cout<<"Podaj ID rodzica: ";
+        cin>>buf1;
+        parentId = stoi(buf1);
+    }while(!kernel.checkIfElementExists(parentId));
+    do{
+        cout<<"Podaj ID dziecka(lub zakoncz wpisujac stop): ";
+        cin>>buf1;
+        if(buf1=="stop")
+            break;
+        childrenId.push_back(stoi(buf1));
+    } while (true);
     while(true){
         cout<<"Stworzyc obiekt czy liczbe(o/l)?";
         cin>>buf1;
@@ -55,17 +74,16 @@ void Menu::C(Kernel &kernel) {
                 atr.push_back({buf1,buf2});
             } while (true);
             Obiekt ob(atr,nazwa,kernel.currentFilename);
-            kernel.Create(&ob);
+            kernel.Create(&ob,childrenId, parentId);
             break;
         }else if(buf1 == "l"){
             cout<<"Wpisz liczbe: ";
             cin>>buf1;
             Liczba licz(stoi(buf1), nazwa, kernel.currentFilename);
-            kernel.Create(&licz);
+            kernel.Create(&licz, childrenId, parentId);
             break;
         }
     }
-
 }
 
 void Menu::R(Kernel &kernel) {
@@ -76,11 +94,49 @@ void Menu::R(Kernel &kernel) {
 }
 
 void Menu::U(Kernel &kernel) {
-
+    string a;
+    cout<<"Wpisz id elementu: ";
+    cin >> a;
+    auto obj = kernel.getById(stoi(a));
+    if(obj == nullptr){
+        cout<<"Nie istnieje wpis o takim id"<<endl;
+        return;
+    }
+    cout<<"Obecne wartosci elementu: "<<endl;
+    kernel.Read(stoi(a));
+    string buf1, buf2, nazwa;
+    cout<<"Podaj nowa nazwe obiektu: ";
+    cin>>obj->name;
+    while(true){
+        if(obj->type == OBIEKT){
+            cout<<"Dodawanie atrybutow do obiektu:\n";
+            do{
+                cout<<"Podaj nazwe atrybutu(lub zakoncz wpisujac stop): ";
+                cin>>buf1;
+                if(buf1=="stop")
+                    break;
+                cout<<"Wpisz wartosc "<<buf1<<": ";
+                cin>>buf2;
+                ((Obiekt*)obj)->atrybuty.insert({buf1,buf2});
+            } while (true);
+            break;
+        }else if(obj->type == LICZBA){
+            cout<<"Wpisz liczbe: ";
+            cin>>buf1;
+            ((Liczba*)obj)->liczba = stoi(buf1);
+            break;
+        }
+    }
+    cout<<"Nowe wartosci elementu:"<<endl;
+    kernel.Read(stoi(a));
+    kernel.makeWholeFile();
 }
 
 void Menu::D(Kernel &kernel) {
-
+    cout<<"Podaj id do usuniecia: ";
+    string a;
+    cin >> a;
+    kernel.removeById(stoi(a));
 }
 
 bool Menu::czyBazaOk(Kernel& kernel) {

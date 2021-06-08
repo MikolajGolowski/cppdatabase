@@ -91,18 +91,7 @@ ISerializable* Obiekt::deSerialize(string content, Kernel &kernel) {
         cout<<" wstawiam na mape pare "<<buf<<" "<<buf2<<endl;
 #endif
     }
-    bool wpis = true;
-    _List_iterator<Obiekt> i;
-    for(i = kernel.obj.begin(); i!=kernel.obj.end(); i++ ){
-        if((*i).id == id){
-            wpis = false;
-#if DEBUG
-            cout<<"Baza danych uszkodzona - sa w niej duplikaty"<<endl;
-#endif
-            break;
-        }
-    }
-    if(wpis){
+    if(!kernel.czyJestDuplikat(this->id)){
         kernel.obj.push_back(*this);
         return &kernel.obj.back();
     }
@@ -118,7 +107,7 @@ string Liczba::serialize() {
     for(auto i : childrenId){
         s.append(","+to_string(i));
     }
-    s.append(to_string(liczba) + "}");
+    s.append("," + to_string(liczba) + "}");
 #if DEBUG
     cout<<"Zserializowano "<<s<<endl;
 #endif
@@ -179,18 +168,7 @@ ISerializable *Liczba::deSerialize(string content, Kernel &kernel) {
         cout<<" odczytalem liczbe "<<buf<<endl;
 #endif
     liczba = stoi(buf);
-    bool wpis = true;
-    _List_iterator<Liczba> i;
-    for(i = kernel.lic.begin(); i!=kernel.lic.end(); i++ ){
-        if((*i).id == id){
-            wpis = false;
-#if DEBUG
-            cout<<"Baza danych uszkodzona - sa w niej duplikaty"<<endl;
-#endif
-            break;
-        }
-    }
-    if(wpis){
+    if(!kernel.czyJestDuplikat(this->id)){
         kernel.lic.push_back(*this);
         return &kernel.lic.back();
     }

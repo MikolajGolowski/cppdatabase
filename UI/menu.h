@@ -9,7 +9,6 @@
 
 class Menu{
 public:
-    int podOpcjaMenu;
     bool parse(string &input, Kernel &kernel);
     void C(Kernel &kernel);
     void R(Kernel &kernel);
