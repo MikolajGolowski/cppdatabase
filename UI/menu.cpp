@@ -33,8 +33,11 @@ bool Menu::parse(string &input, Kernel &kernel) {
             cout<<"Nierozpoznana komenda"<<endl;
         }
     }
+    catch(invalid_argument& ex){
+        cout<<"Wpisz liczbe, przerywam operacje"<<endl;
+    }
     catch(exception &ex){
-        cout<<"Blad! "<<ex.what()<<endl;
+        cout<<"Nierozpoznany blad! "<<ex.what()<<endl;
     }
 
     cout<<endl<<">>> ";
