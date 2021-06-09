@@ -6,30 +6,35 @@
 using namespace std;
 
 bool Menu::parse(string &input, Kernel &kernel) {
-    if(input == "help"){
-        cout<<"Program obsluguje komendy:\n1. Create\n2. Read\n3. Update\n4. Delete\n Aby ich uzyc nalezy wpisac pierwsza"
-              " litere komendy i postepowac zgodnie z wyswietlanymi instrukcjami.\n Zeby zmienic baze danych nalezy uzyc komendy "
-              "baza LOKALIZACJA_BAZY np. aby uzyc bazy plik.bd \"baza plik.db\"\n Komenda exit konczy dzialanie programu";
-    }else if(input=="exit"){
-        return false;
-    }else if(input == "C" || input == "c"){
-        if(czyBazaOk(kernel))
-            C(kernel);
-    }else if(input == "r" || input == "R"){
-        if(czyBazaOk(kernel))
-            R(kernel);
-    }else if(input == "u" || input == "U"){
-        if(czyBazaOk(kernel))
-            U(kernel);
-    }else if(input == "d" || input == "D"){
-        if(czyBazaOk(kernel))
-            D(kernel);
-    }else if(input == "baza"){
-        cin>>input;
-        cout<<"Wybrano baze danych "<<input<<endl;
-        kernel.switchDatabase(input);
-    }else{
-        cout<<"Nierozpoznana komenda"<<endl;
+    try{
+        if(input == "help"){
+            cout<<"Program obsluguje komendy:\n1. Create\n2. Read\n3. Update\n4. Delete\n Aby ich uzyc nalezy wpisac pierwsza"
+                  " litere komendy i postepowac zgodnie z wyswietlanymi instrukcjami.\n Zeby zmienic baze danych nalezy uzyc komendy "
+                  "baza LOKALIZACJA_BAZY np. aby uzyc bazy plik.bd \"baza plik.db\"\n Komenda exit konczy dzialanie programu";
+        }else if(input=="exit"){
+            return false;
+        }else if(input == "C" || input == "c"){
+            if(czyBazaOk(kernel))
+                C(kernel);
+        }else if(input == "r" || input == "R"){
+            if(czyBazaOk(kernel))
+                R(kernel);
+        }else if(input == "u" || input == "U"){
+            if(czyBazaOk(kernel))
+                U(kernel);
+        }else if(input == "d" || input == "D"){
+            if(czyBazaOk(kernel))
+                D(kernel);
+        }else if(input == "baza"){
+            cin>>input;
+            cout<<"Wybrano baze danych "<<input<<endl;
+            kernel.switchDatabase(input);
+        }else{
+            cout<<"Nierozpoznana komenda"<<endl;
+        }
+    }
+    catch(exception &ex){
+        cout<<"Blad! "<<ex.what()<<endl;
     }
 
     cout<<endl<<">>> ";
